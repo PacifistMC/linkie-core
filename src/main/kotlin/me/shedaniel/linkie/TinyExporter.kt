@@ -74,7 +74,7 @@ object TinyExporter {
     ): InputStream {
         val namespaces = mutableListOf(obfMerged)
         containers.forEach { container ->
-            val name = container.name.lowercase().replace(" ", "_")
+            val name = container.namespace.lowercase().replace(" ", "_")
             namespaces.addAll(listOf("intermediary_$name", name))
         }
 

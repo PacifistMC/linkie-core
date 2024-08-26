@@ -32,7 +32,7 @@ object MojangHashedNamespace : Namespace("mojang_hashed") {
                 }
 
                 mappings { version ->
-                    MojangNamespace.getProvider(version).get()
+                    getProvider(version).get()
                         .clone()
                         .copy(version = version, name = "Mojang (Hashed)", mappingsSource = MappingsSource.MOJANG_HASHED)
                         .also { it.hash(version) }
