@@ -1,21 +1,12 @@
 package me.shedaniel.linkie.core.tests
 
 import com.soywiz.klock.measureTime
-import com.soywiz.korio.dynamic.KDynamic.Companion.get
 import com.soywiz.korio.util.toStringDecimal
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
-import me.shedaniel.linkie.Class
-import me.shedaniel.linkie.Field
-import me.shedaniel.linkie.LinkieConfig
-import me.shedaniel.linkie.MappingsContainer
-import me.shedaniel.linkie.MappingsEntry
-import me.shedaniel.linkie.Method
-import me.shedaniel.linkie.Namespaces
+import me.shedaniel.linkie.*
 import me.shedaniel.linkie.namespaces.*
-import me.shedaniel.linkie.obfMergedName
-import me.shedaniel.linkie.optimumName
 import me.shedaniel.linkie.utils.ClassResultList
 import me.shedaniel.linkie.utils.FieldResultList
 import me.shedaniel.linkie.utils.MappingsQuery
@@ -224,6 +215,21 @@ class LinkieTest {
             delay(2000)
             while (FeatherNamespace.reloading) delay(100)
             FeatherNamespace.getDefaultProvider().get()
+        }
+    }
+
+    @Test
+    fun exportMappings() {
+        runBlocking {
+            Namespaces.init(LinkieConfig.DEFAULT.copy(namespaces = listOf(YarnNamespace, MojangNamespace, QuiltMappingsNamespace)))
+            delay(6000)
+            while (YarnNamespace.reloading || MojangNamespace.reloading || QuiltMappingsNamespace.reloading) delay(300)
+            val yarn = YarnNamespace.getDefaultProvider().get()
+            val mojang = MojangNamespace.getDefaultProvider().get()
+            val quilt = QuiltMappingsNamespace.getDefaultProvider().get()
+
+            TinyExporter.export(yarn, "intermediary", "named", "obfMerged", "obfClient", "obfServer")
+            TinyExporter.mergedExport(listOf(mojang, yarn, quilt))
         }
     }
 

@@ -1,6 +1,5 @@
 package me.shedaniel.linkie.utils
 
-import com.soywiz.korio.dynamic.KDynamic.Companion.toInt
 import com.soywiz.korio.file.VfsFile
 import java.io.StringReader
 import kotlin.math.min

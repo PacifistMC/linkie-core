@@ -9,7 +9,7 @@ import kotlinx.coroutines.withTimeout
 import me.shedaniel.linkie.utils.div
 import me.shedaniel.linkie.utils.error
 import me.shedaniel.linkie.utils.info
-import kotlin.time.Duration.Companion.seconds
+import kotlin.time.Duration.Companion.minutes
 
 interface MappingsSupplier {
     fun isApplicable(version: String): Boolean
@@ -81,7 +81,7 @@ private class NamespacedMappingsSupplier(val namespace: Namespace, mappingsSuppl
         locks.getOrPut(version) { Mutex() }.withLock {
             Namespaces.limitCachedData(1)
             return getCachedVersion(version) ?: runCatching {
-                withTimeout(20.seconds) {
+                withTimeout(5.minutes) {
                     super.applyVersion(version)
                 }.also {
                     it.namespace = namespace.id

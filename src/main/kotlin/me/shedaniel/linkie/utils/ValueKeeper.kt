@@ -9,7 +9,7 @@ import kotlin.properties.ReadOnlyProperty
 import kotlin.reflect.KProperty
 
 @Suppress("MemberVisibilityCanBePrivate", "unused")
-class ValueKeeper<T> constructor(val timeToKeep: TimeSpan, var valueBackend: Optional<T>, val getter: suspend () -> T) : Lazy<T> {
+class ValueKeeper<T : Any> constructor(val timeToKeep: TimeSpan, var valueBackend: Optional<T>, val getter: suspend () -> T) : Lazy<T> {
     companion object {
         private val timer = Timer()
     }
@@ -43,10 +43,10 @@ class ValueKeeper<T> constructor(val timeToKeep: TimeSpan, var valueBackend: Opt
     override fun isInitialized(): Boolean = valueBackend.isPresent
 }
 
-fun <T> valueKeeper(timeToKeep: TimeSpan = 2.minutes, getter: suspend () -> T): ValueKeeperProperty<T> =
+fun <T : Any> valueKeeper(timeToKeep: TimeSpan = 2.minutes, getter: suspend () -> T): ValueKeeperProperty<T> =
     ValueKeeperProperty(timeToKeep, getter)
 
-class ValueKeeperProperty<T>(
+class ValueKeeperProperty<T : Any>(
     timeToKeep: TimeSpan,
     getter: suspend () -> T,
 ) : ReadOnlyProperty<Any?, T>, Lazy<T> {

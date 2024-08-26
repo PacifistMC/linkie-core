@@ -21,11 +21,7 @@ object TinyExporter {
         obfClient: String? = null,
         obfServer: String? = null,
     ): InputStream {
-        val namespaces = mutableListOf(intermediary)
-        named?.also { namespaces.add(it) }
-        obfMerged?.also { namespaces.add(it) }
-        obfClient?.also { namespaces.add(it) }
-        obfServer?.also { namespaces.add(it) }
+        val namespaces = mutableListOf(intermediary, named, obfMerged, obfClient, obfServer).filterNotNull()
         val tinyFile = TinyFile(TinyHeader(namespaces, 2, 0, mapOf()), buildList {
             container.classes.forEach { (_, clazz) ->
                 val tinyClass = TinyClass(buildList {
@@ -59,6 +55,100 @@ object TinyExporter {
                             obfServer?.also { add(field.obfServerName ?: field.intermediaryName) }
                         }, emptyList())
                         add(tinyMethod)
+                    }
+                })
+                add(tinyClass)
+            }
+        })
+        val tmpPath = File(Namespaces.cacheFolder.absolutePath).toPath().resolve(UUID.randomUUID().toString())
+        TinyV2Writer.write(tinyFile, tmpPath)
+        val bytes = Files.readAllBytes(tmpPath)
+        Files.deleteIfExists(tmpPath)
+        return bytes.inputStream()
+    }
+
+    fun mergedExport(
+        containers: List<MappingsContainer>,
+        ignoreMissing: Boolean = true,
+        obfMerged: String = "vanilla",
+    ): InputStream {
+        val namespaces = mutableListOf(obfMerged)
+        containers.forEach { container ->
+            val name = container.name.lowercase().replace(" ", "_")
+            namespaces.addAll(listOf("intermediary_$name", name))
+        }
+
+        // Group classes by their obfuscated names across all containers
+        val groupedClasses = containers.flatMap { it.classes.values }.groupBy { it.optimumObfName }
+
+        val tinyFile = TinyFile(TinyHeader(namespaces, 2, 0, mapOf()), buildList {
+            groupedClasses.forEach { (obfName, classList) ->
+                val classes = classList.toMutableList()
+                // Group methods and fields by their obfuscated signatures
+                // Add a special token `%%%` to prevent problems such as same descriptors but different names
+                val groupedMethods = classes.flatMap { it.methods }
+                    .groupBy { "${it.getObfDesc(containers)}%%%${it.optimumObfName}" }
+                val groupedFields = classes.flatMap { it.fields }
+                    .groupBy { "${it.getObfDesc(containers)}%%%${it.optimumObfName}" }
+
+                if (classes.size < containers.size) {
+                    if (ignoreMissing) {
+                        println("Skipping class `$obfName` as it doesn't exist in all containers")
+                        return@forEach
+                    }
+                    // Duplicate the class to prevent missing classes
+                    repeat(containers.size - classes.size) { classes.add(classes.first()) }
+                }
+
+                val tinyClass = TinyClass(buildList {
+                    add(obfName)
+                    classes.forEach { clazz ->
+                        add(clazz.intermediaryName)
+                        add(clazz.optimumName)
+                    }
+                })
+                tinyClass.methods.addAll(buildList {
+                    groupedMethods.forEach { (signature, methodList) ->
+                        val methods = methodList.toMutableList()
+                        val (obfDesc, obfMethodName) = signature.split("%%%")
+                        if (methods.size < containers.size) {
+                            if (ignoreMissing) {
+                                println("Skipping a method with `$obfDesc` and name `$obfMethodName` as it doesn't exist in all containers")
+                                return@forEach
+                            }
+                            // Duplicate the method to prevent missing methods
+                            repeat(containers.size - methods.size) { methods.add(methods.first()) }
+                        }
+                        val tinyMethod = TinyMethod(obfDesc, buildList {
+                            add(methods.first().optimumObfName)
+                            methods.forEach { method ->
+                                add(method.intermediaryName)
+                                add(method.optimumName)
+                            }
+                        }, emptyList(), emptyList(), emptyList())
+                        add(tinyMethod)
+                    }
+                })
+                tinyClass.fields.addAll(buildList {
+                    groupedFields.forEach { (signature, fieldList) ->
+                        val fields = fieldList.toMutableList()
+                        val (obfDesc, obfFieldName) = signature.split("%%%")
+                        if (fields.size < containers.size) {
+                            if (ignoreMissing) {
+                                println("Skipping a field with `$obfDesc` and name `$obfFieldName` as it doesn't exist in all containers")
+                                return@forEach
+                            }
+                            // Duplicate the field to prevent missing fields
+                            repeat(containers.size - fields.size) { fields.add(fields.first()) }
+                        }
+                        val tinyField = TinyField(obfDesc, buildList {
+                                add(fields.first().optimumObfName)
+                                fields.forEach { field ->
+                                    add(field.intermediaryName)
+                                    add(field.optimumName)
+                                }
+                            }, emptyList())
+                        add(tinyField)
                     }
                 })
                 add(tinyClass)
