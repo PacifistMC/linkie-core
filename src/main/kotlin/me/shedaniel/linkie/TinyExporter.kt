@@ -1,5 +1,6 @@
 package me.shedaniel.linkie
 
+import me.shedaniel.linkie.utils.warn
 import net.fabricmc.stitch.commands.tinyv2.TinyClass
 import net.fabricmc.stitch.commands.tinyv2.TinyField
 import net.fabricmc.stitch.commands.tinyv2.TinyFile
@@ -71,6 +72,7 @@ object TinyExporter {
         containers: List<MappingsContainer>,
         ignoreMissing: Boolean = true,
         obfMerged: String = "vanilla",
+        warnings: Boolean = true,
     ): InputStream {
         val namespaces = mutableListOf(obfMerged)
         containers.forEach { container ->
@@ -86,14 +88,12 @@ object TinyExporter {
                 val classes = classList.toMutableList()
                 // Group methods and fields by their obfuscated signatures
                 // Add a special token `%%%` to prevent problems such as same descriptors but different names
-                val groupedMethods = classes.flatMap { it.methods }
-                    .groupBy { "${it.getObfDesc(containers)}%%%${it.optimumObfName}" }
-                val groupedFields = classes.flatMap { it.fields }
-                    .groupBy { "${it.getObfDesc(containers)}%%%${it.optimumObfName}" }
+                val groupedMethods = classes.flatMap { it.methods }.groupBy { "${it.getObfDesc(containers)}%%%${it.optimumObfName}" }
+                val groupedFields = classes.flatMap { it.fields }.groupBy { it.optimumObfName }
 
                 if (classes.size < containers.size) {
                     if (ignoreMissing) {
-                        println("Skipping class `$obfName` as it doesn't exist in all containers")
+                        if (warnings) warn("Skipping class `${classes.first().optimumName}` as it doesn't exist in all containers")
                         return@forEach
                     }
                     // Duplicate the class to prevent missing classes
@@ -110,14 +110,15 @@ object TinyExporter {
                 tinyClass.methods.addAll(buildList {
                     groupedMethods.forEach { (signature, methodList) ->
                         val methods = methodList.toMutableList()
-                        val (obfDesc, obfMethodName) = signature.split("%%%")
+                        val (obfDesc, _) = signature.split("%%%")
                         if (methods.size < containers.size) {
+                            val method = methods.last()
                             if (ignoreMissing) {
-                                println("Skipping a method with `$obfDesc` and name `$obfMethodName` as it doesn't exist in all containers")
+                                if (warnings) warn("Skipping a method with name `${method.optimumName}` and `${method.intermediaryDesc}` as it doesn't exist in all containers")
                                 return@forEach
                             }
                             // Duplicate the method to prevent missing methods
-                            repeat(containers.size - methods.size) { methods.add(methods.first()) }
+                            repeat(containers.size - methods.size) { methods.add(method) }
                         }
                         val tinyMethod = TinyMethod(obfDesc, buildList {
                             add(methods.first().optimumObfName)
@@ -130,19 +131,20 @@ object TinyExporter {
                     }
                 })
                 tinyClass.fields.addAll(buildList {
-                    groupedFields.forEach { (signature, fieldList) ->
+                    groupedFields.forEach { (obfName, fieldList) ->
                         val fields = fieldList.toMutableList()
-                        val (obfDesc, obfFieldName) = signature.split("%%%")
+                        val obfDesc = fields.first { it.intermediaryDesc.isNotBlank() }.getObfDesc(containers)
                         if (fields.size < containers.size) {
+                            val field = fields.last()
                             if (ignoreMissing) {
-                                println("Skipping a field with `$obfDesc` and name `$obfFieldName` as it doesn't exist in all containers")
+                                if (warnings) warn("Skipping a field with name `${field.optimumName}` and `${field.intermediaryDesc}` as it doesn't exist in all containers")
                                 return@forEach
                             }
                             // Duplicate the field to prevent missing fields
-                            repeat(containers.size - fields.size) { fields.add(fields.first()) }
+                            repeat(containers.size - fields.size) { fields.add(field) }
                         }
                         val tinyField = TinyField(obfDesc, buildList {
-                                add(fields.first().optimumObfName)
+                                add(obfName)
                                 fields.forEach { field ->
                                     add(field.intermediaryName)
                                     add(field.optimumName)

@@ -234,6 +234,19 @@ class LinkieTest {
     }
 
     @Test
+    fun exportMappingsOld() {
+        runBlocking {
+            Namespaces.init(LinkieConfig.DEFAULT.copy(namespaces = listOf(MCPNamespace, LegacyYarnNamespace)))
+            delay(4000)
+            while (MCPNamespace.reloading) delay(200)
+            val mcp = MCPNamespace.getProvider("1.8.9").get()
+            val legacyYarn = LegacyYarnNamespace.getProvider("1.8.9").get()
+            TinyExporter.export(legacyYarn, "intermediary", "named", "obfMerged", "obfClient", "obfServer")
+            TinyExporter.mergedExport(listOf(legacyYarn, mcp), false) // I recommend enabling `ignoreMissing` for versions lower than 1.14
+        }
+    }
+
+    @Test
     fun descriptionLocalising() {
         assertEquals("int", "I".localiseFieldDesc())
         assertEquals("int[]", "[I".localiseFieldDesc())

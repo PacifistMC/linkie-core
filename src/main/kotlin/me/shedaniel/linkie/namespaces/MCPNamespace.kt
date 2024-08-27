@@ -133,9 +133,7 @@ object MCPNamespace : Namespace("mcp") {
         }
         container.classes.forEach { (_, it) ->
             it.fields.forEach { field ->
-                map[field.intermediaryName]?.apply {
-                    field.mappedName = this
-                }
+                field.mappedName = map[field.intermediaryName]
             }
         }
     }
@@ -148,9 +146,7 @@ object MCPNamespace : Namespace("mcp") {
         }
         container.classes.forEach { (_, it) ->
             it.methods.forEach { method ->
-                map[method.intermediaryName]?.apply {
-                    method.mappedName = this
-                }
+                method.mappedName = map[method.intermediaryName]
             }
         }
     }

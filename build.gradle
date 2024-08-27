@@ -7,7 +7,7 @@ plugins {
 }
 
 group "dev.lewds.entwinemc.libs"
-version = "1.0.121+0.0.2" // 1.0.121 is the original version this fork is based on, 0.0.1 is the fork version
+version = "1.0.121+0.0.3" // 1.0.121 is the original version this fork is based on, 0.0.3 is the fork version
 
 sourceCompatibility = targetCompatibility = 1.8
 

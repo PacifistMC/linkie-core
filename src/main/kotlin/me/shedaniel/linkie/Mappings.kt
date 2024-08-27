@@ -423,7 +423,7 @@ var MappingsEntry.obfMergedName: String?
     }
 
 val MappingsEntry.optimumObfName: String
-    get() = obfMergedName ?: obfClientName ?: obfServerName ?: intermediaryName
+    get() = obfMergedName ?: intermediaryName
 
 val String.isSpecialGenerated: Boolean
     get() = startsWith("<") && endsWith(">")
@@ -526,16 +526,17 @@ fun MappingsMember.getObfClientDesc(container: MappingsContainer): String =
 fun MappingsMember.getObfServerDesc(container: MappingsContainer): String =
     intermediaryDesc.remapDescriptor { container.getClass(it)?.obfServerName ?: it }
 
-fun MappingsMember.getObfDesc(containers: List<MappingsContainer>): String =
+fun MappingsMember.getObfDesc(containers: List<MappingsContainer>): String {
     // Make sure it doesn't return intermediary desc, only return it as a last resort if it's not found in any containers
     // Try to go through all containers and return a obfMergedName, if the obfMergedName is not found, return obfClientName or obfServerName, if they are also not found in any containers, return intermediaryDesc
-    intermediaryDesc.remapDescriptor { desc ->
+    return intermediaryDesc.remapDescriptor { clazz ->
         containers.asSequence().mapNotNull { container ->
-            container.getClass(desc)?.obfMergedName
-                ?: container.getClass(desc)?.obfClientName
-                ?: container.getClass(desc)?.obfServerName
-        }.firstOrNull() ?: desc
+            container.getClass(clazz)?.obfMergedName
+                ?: container.getClass(clazz)?.obfClientName
+                ?: container.getClass(clazz)?.obfServerName
+        }.firstOrNull() ?: clazz
     }
+}
 
 @Serializable
 data class Obf(

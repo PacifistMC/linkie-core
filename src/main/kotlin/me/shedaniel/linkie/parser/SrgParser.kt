@@ -34,29 +34,26 @@ class SrgParser(content: String) : AbstractParser() {
 
     override fun parse(visitor: MappingsVisitor) = withVisitor(visitor) {
         visitor.visitStart(MappingsNamespaces.of(namespaces.keys))
-        val classVisitors = mutableMapOf<String, MappingsClassVisitor>()
         groups["CL:"]?.forEach { classLine ->
             val split = classLine.substring(4).split(" ")
             lastClass.split = split::get
-            visitor.visitClass(lastClass)?.also { classVisitors[split[0]] = it }
-        }
-        groups["FD:"]?.forEach { fieldLine ->
-            val split = fieldLine.substring(4).split(" ")
-            val obfClass = split[0].substringBeforeLast('/')
-            classVisitors[obfClass]?.also { visitor ->
-                field.obf = split[0].substringAfterLast('/')
-                field.srg = split[1].substringAfterLast('/')
-                visitor.visitField(field)
+            val classVisitor = visitor.visitClass(lastClass)!!
+            groups["FD:"]?.forEach { fieldLine ->
+                val fieldSplit = fieldLine.substring(4).split(" ")
+                if (fieldSplit[0].substringBeforeLast('/') != split[0]) return@forEach
+
+                field.obf = fieldSplit[0].substringAfterLast('/')
+                field.srg = fieldSplit[1].substringAfterLast('/')
+                classVisitor.visitField(field)
             }
-        }
-        groups["MD:"]?.forEach { fieldLine ->
-            val split = fieldLine.substring(4).split(" ")
-            val obfClass = split[0].substringBeforeLast('/')
-            classVisitors[obfClass]?.also { visitor ->
-                val obfDesc = split[1]
-                method.obf = split[0].substringAfterLast('/')
-                method.srg = split[2].substringAfterLast('/')
-                visitor.visitMethod(method, obfDesc)
+            groups["MD:"]?.forEach { methodLine ->
+                val methodSplit = methodLine.substring(4).split(" ")
+                if (methodSplit[0].substringBeforeLast('/') != split[0]) return@forEach
+
+                val obfDesc = methodSplit[1]
+                method.obf = methodSplit[0].substringAfterLast('/')
+                method.srg = methodSplit[2].substringAfterLast('/')
+                classVisitor.visitMethod(method, obfDesc)
             }
         }
         visitor.visitEnd()

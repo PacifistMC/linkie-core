@@ -1,11 +1,15 @@
 #### Fork of `linkie-core` that's contains a few updates and changes.
-Currently, the main feature the fork adds is a way to export multiple mappings in a single tiny file.
+
+**Changes**
+- Export multiple mappings in a single tiny file
+- Fix `SRGParser` (old MCP mappings finally works)
 
 Note: 1.20.2+ doesn't have SRG mappings, in NeoForge mojmap is available at runtime.\
 Not sure what Forge has though
 
-TODO
+**TODO**
 - Check if Forge still has SRG mappings or did they also switch to mojmap at runtime?
+- A way to have field descriptors for old MCP mappings
 ---
 # linkie-core
 The absolute core of linkie.
